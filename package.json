@@ -73,6 +73,7 @@
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
     "paypal-rest-sdk": "^1.6.9",
+    "pdfkit": "^0.13.0",
     "rand-token": "^0.4.0",
     "rimraf": "^2.7.1",
     "sanitize-html": "^2.3.2",
@@ -83,6 +84,7 @@
     "text-to-image": "^5.2.0",
     "uglifycss": "0.0.27",
     "ws": "^8.13.0",
+    "xlsx": "^0.18.5",
     "xml-js": "^1.6.11",
     "yenv": "^2.1.1"
   },

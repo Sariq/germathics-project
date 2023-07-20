@@ -54,25 +54,36 @@ router.get("/api/admin/categories/:page?", async (req, res, next) => {
 });
 
 router.post("/api/admin/categories/add", async (req, res, next) => {
-
   const db = req.app.db;
+
   const doc = {
     name: req.body.name,
     studentsList: [],
-    lecturesCount: req.body.lecturesCount,
   };
 
   let lectures = [];
-  for(i=0;i< doc.lecturesCount; i++){
-    const lecture = {
-      studentsList: [],
-      id: i
-    };
-    lectures.push(lecture);
-  }
 
   doc.lectures = lectures;
   await db.categories.insertOne(doc);
+  const categoriesRes =   await db.categories.find().toArray();
+  res.status(200).json(categoriesRes);
+});
+
+router.post("/api/admin/categories/update", async (req, res, next) => {
+
+  const db = req.app.db;
+  const id = req.body._id;
+  delete req.body._id;;
+  const doc = {
+    ...req.body,
+  };
+
+  await db.categories.updateOne(
+    { _id: getId(id) },
+    { $set: doc },
+    { multi: false }
+  );  
+
   const categoriesRes =   await db.categories.find().toArray();
   res.status(200).json(categoriesRes);
 });
