@@ -105,7 +105,6 @@ router.post("/api/admin/students/add", async (req, res, next) => {
   };
 
   const createdStudent = await db.students.insertOne(doc);
-  console.log("createdStudent", doc);
   if (req.body.categoryId !== "") {
     addStudentToCategory(req, req.body.categoryId, createdStudent.insertedId);
   }
@@ -184,7 +183,6 @@ router.post("/admin/students/category/change", async (req, res, next) => {
     { $set: { categoryId: student.newCategoryId } },
     { multi: false }
   );
-  console.log("RRR", student);
 
   removeStudentFromCategory(
     req,
@@ -204,8 +202,6 @@ router.post("/admin/students/category/change", async (req, res, next) => {
 router.post("/api/admin/students", async (req, res, next) => {
   const db = req.app.db;
   let studentsList = [];
-  console.log("req.params.ids", req.body.ids);
-  console.log(req.body.ids);
   if (req.body.ids && req.body.ids.length > 0) {
     const ids = req.body.ids.map((id) => getId(id));
     studentsList = await db.students.find({ _id: { $in: ids } }).toArray();
@@ -346,7 +342,6 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
 router.post('/api/admin/students/generateReceipt',async (req, res) => {
   // JSON data
   const jsonData = { title: "title1", price: 200 };
-  console.log(req.body)
   // Create a new PDF document
   const doc = new PDFDocument();
 

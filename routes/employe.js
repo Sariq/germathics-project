@@ -57,8 +57,6 @@ router.post("/api/admin/employes/update", async (req, res, next) => {
 router.post("/api/admin/employes", async (req, res, next) => {
   const db = req.app.db;
   let employesList = [];
-  console.log("req.params.ids", req.body.ids);
-  console.log(req.body.ids);
   if (req.body.ids && req.body.ids.length > 0) {
     const ids = req.body.ids.map((id) => getId(id));
     employesList = await db.employes.find({ _id: { $in: ids } }).toArray();

@@ -12,8 +12,6 @@ updateStudentAppearnceCount = async function (req,studentsList, currentStudentsL
 
 
   studentsList.forEach(async (student, index) => {
-    console.log("student",student)
-    console.log("currentStudentsList[index]",currentStudentsList[index])
     switch(true){
       case student.isAppeard && !currentStudentsList[index].isAppeard:
         await db.students.updateOne(
