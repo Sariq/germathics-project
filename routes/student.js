@@ -245,6 +245,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
     lectureDate: req.body.lectureDate,
     studentId: req.body.studentId,
     seatStatus: req.body.seatStatus,
+    categoryId: req.body.categoryId
   };
 
   let studentDoc = await db.students.findOne({
@@ -297,6 +298,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
             status: params.seatStatus,
             lectureDate: params.lectureDate,
             lectureId: params.lectureId,
+            categoryId: params.categoryId
           };
         } else {
           return seat;
