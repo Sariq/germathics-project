@@ -2,20 +2,20 @@ const express = require("express");
 const router = express.Router();
 const { getId, PaymentMethods } = require("../lib/common");
 const uuid = require("uuid");
-const PDFDocument = require('pdfkit');
+const PDFDocument = require("pdfkit");
 const textToImage = require("text-to-image");
-const fs = require('fs');
-const nodemailer = require('nodemailer');
-const XLSX = require('xlsx');
+const fs = require("fs");
+const nodemailer = require("nodemailer");
+const XLSX = require("xlsx");
 const moment = require("moment");
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
-    user: 'germathics.dev@gmail.com',
-     pass: 'iioxheozbhqwuhoh'
+    user: "germathics.dev@gmail.com",
+    pass: "iioxheozbhqwuhoh",
     // pass: 'bgxhkditradxebev'
-  }
+  },
 });
 
 addStudentToCategory = async function (
@@ -71,7 +71,7 @@ removeStudentFromCategory = async function (
   });
 
   category.studentsList = category.studentsList.filter((id) => {
-    return id === (studentId);
+    return id === studentId;
   });
 
   // category.lectures.forEach((lecture, index) => {
@@ -143,7 +143,8 @@ router.post("/api/admin/students/update", async (req, res, next) => {
     );
   }
 
-  res.status(200).json({});
+  const studentsList = await db.students.find().toArray();
+  res.status(200).json(studentsList);
 });
 
 router.post("/api/admin/students/add/package", async (req, res, next) => {
@@ -223,19 +224,19 @@ const getPackageStatus = (packageData) => {
   }
 };
 
-const getSeatPackage = (studentDoc,lectureId) => {
+const getSeatPackage = (studentDoc, lectureId) => {
   let seatFound = null;
   let seatPackage = null;
   studentDoc.packagesList.forEach((currentPackage) => {
-       currentPackage.seats.forEach((seat) => {
-        if (seat.lectureId === lectureId) {
-          seatPackage = currentPackage;
-          seatFound = seat;
-        }
-      });
-    }); 
-    return {seatPackage,seatFound};
-}
+    currentPackage.seats.forEach((seat) => {
+      if (seat.lectureId === lectureId) {
+        seatPackage = currentPackage;
+        seatFound = seat;
+      }
+    });
+  });
+  return { seatPackage, seatFound };
+};
 router.post("/api/admin/students/apperance", async (req, res, next) => {
   const db = req.app.db;
 
@@ -261,7 +262,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
       appearanceValue = 0;
       break;
   }
-  
+
   let firstActivePackage = studentDoc.packagesList.filter(
     (package) => package.status !== 2
   )[0];
@@ -270,21 +271,27 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
   )[0];
   let isAddNewPackge = false;
 
-   const {seatPackage,seatFound} = getSeatPackage(studentDoc, params.lectureId)
+  const { seatPackage, seatFound } = getSeatPackage(
+    studentDoc,
+    params.lectureId
+  );
 
-   if(seatPackage && seatFound){
+  if (seatPackage && seatFound) {
     firstActivePackage = seatPackage;
     firstEmptySeat = seatFound;
-   }else{
+  } else {
     firstEmptySeat.status = params.seatStatus;
-   }
+  }
 
   studentDoc.packagesList = studentDoc.packagesList.map((currentPackage) => {
     if (currentPackage.id === firstActivePackage.id) {
       currentPackage.appearanceCount =
         currentPackage.appearanceCount + appearanceValue;
       currentPackage.seats = firstActivePackage.seats.map((seat) => {
-        if (seat.id === firstEmptySeat.id || seat.lectureDate === firstEmptySeat.lectureId) {
+        if (
+          seat.id === firstEmptySeat.id ||
+          seat.lectureDate === firstEmptySeat.lectureId
+        ) {
           return {
             ...seat,
             status: params.seatStatus,
@@ -296,7 +303,8 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
         }
       });
       const packageStatus = getPackageStatus(currentPackage);
-      currentPackage.status = packageStatus;  78
+      currentPackage.status = packageStatus;
+      78;
       if (packageStatus === 2 && !seatFound) {
         isAddNewPackge = true;
       }
@@ -306,7 +314,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
     }
   });
 
-  if(isAddNewPackge){
+  if (isAddNewPackge) {
     const newPackage = {
       id: uuid.v4(),
       createdDate: new Date(),
@@ -324,8 +332,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
       });
     }
     studentDoc.packagesList.push(newPackage);
-  };
-
+  }
 
   const id = studentDoc._id;
   delete studentDoc._id;
@@ -339,44 +346,42 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
   res.status(200).json(studentsList);
 });
 
-router.post('/api/admin/students/generateReceipt',async (req, res) => {
+router.post("/api/admin/students/generateReceipt", async (req, res) => {
   // JSON data
   const jsonData = { title: "title1", price: 200 };
   // Create a new PDF document
   const doc = new PDFDocument();
 
   const buffers = [];
-  doc.on('data', buffer => buffers.push(buffer));
-  doc.on('end', () => {
+  doc.on("data", (buffer) => buffers.push(buffer));
+  doc.on("end", () => {
     const pdfData = Buffer.concat(buffers);
 
     // Configure the email options
     const mailOptions = {
-      from: 'germathics.dev@gmail.com',
-      to: 'sari.qashuw@gmail.com',
-      subject: 'Receipt',
-      text: 'Please find the receipt attached.',
+      from: "germathics.dev@gmail.com",
+      to: "sari.qashuw@gmail.com, gires419@gmail.com",
+      subject: "Receipt",
+      text: "Please find the receipt attached.",
       attachments: [
         {
-          filename: 'receipt.pdf',
-          content: pdfData
-        }
-      ]
+          filename: "receipt.pdf",
+          content: pdfData,
+        },
+      ],
     };
 
     // Send the email
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.log('Error sending email:', error);
-        res.status(500).send('Error sending email');
+        console.log("Error sending email:", error);
+        res.status(500).send("Error sending email");
       } else {
-        console.log('Email sent:', info.response);
-        res.send('Email sent successfully');
+        console.log("Email sent:", info.response);
+        res.send("Email sent successfully");
       }
     });
   });
-
-
 
   // Set the response headers
   // res.setHeader('Content-Type', 'application/pdf');
@@ -388,46 +393,63 @@ router.post('/api/admin/students/generateReceipt',async (req, res) => {
     maxWidth: 200,
     textAlign: "right",
   });
-  const dataUriDate = await textToImage.generate(`תאריך: ${moment(req.body.createdDate).format("DD/MM/YYYY")}`, {
-    maxWidth: 200,
-    textAlign: "right",
-  });
-  const dataUriPhone = await textToImage.generate(`מספר טלפון: ${req.body.phone}`, {
-    maxWidth: 300,
-    textAlign: "right",
-  });
-  const dataUriRecipetNumber = await textToImage.generate(`מספר חשבונית: ${200}`, {
-    maxWidth: 200,
-    textAlign: "right",
-  });
-  const dataUriCompanyId = await textToImage.generate(`עוסק מורשה: ${318621299}`, {
-    maxWidth: 300,
-    textAlign: "right",
-  });
+  const dataUriDate = await textToImage.generate(
+    `תאריך: ${moment(req.body.createdDate).format("DD/MM/YYYY")}`,
+    {
+      maxWidth: 200,
+      textAlign: "right",
+    }
+  );
+  const dataUriPhone = await textToImage.generate(
+    `מספר טלפון: ${req.body.phone}`,
+    {
+      maxWidth: 300,
+      textAlign: "right",
+    }
+  );
+  const dataUriRecipetNumber = await textToImage.generate(
+    `מספר חשבונית: ${200}`,
+    {
+      maxWidth: 200,
+      textAlign: "right",
+    }
+  );
+  const dataUriCompanyId = await textToImage.generate(
+    `עוסק מורשה: ${318621299}`,
+    {
+      maxWidth: 300,
+      textAlign: "right",
+    }
+  );
   const dataUriPrice = await textToImage.generate(`מחיר: ${req.body.amount}`, {
     maxWidth: 200,
     textAlign: "right",
   });
-  const dataUriPaymentMethod = await textToImage.generate(`שיטת תשלום: ${req.body.paymentMethod}`, {
-    maxWidth: 200,
-    textAlign: "right",
-  });
-  const dataUriConfirmationNumber = await textToImage.generate(`מספר אישור: ${req.body.confirmationNumber}`, {
-    maxWidth: 200,
-    textAlign: "right",
-  });
+  const dataUriPaymentMethod = await textToImage.generate(
+    `שיטת תשלום: ${req.body.paymentMethod}`,
+    {
+      maxWidth: 200,
+      textAlign: "right",
+    }
+  );
+  const dataUriConfirmationNumber = await textToImage.generate(
+    `מספר אישור: ${req.body.confirmationNumber}`,
+    {
+      maxWidth: 200,
+      textAlign: "right",
+    }
+  );
 
-  doc.image(__dirname+'/germathics-logo.png', 225, 0, {width: 200});
+  doc.image(__dirname + "/germathics-logo.png", 225, 0, { width: 200 });
 
-  doc.image(dataUriName, 400, 200, {width: 200})
-  doc.image(dataUriDate, 400, 250, {width: 200})
-  doc.image(dataUriPhone, 300, 300, {width: 300})
-  doc.image(dataUriRecipetNumber, 400, 350, {width: 200})
-  doc.image(dataUriCompanyId, 300, 400, {width: 300})
-  doc.image(dataUriPrice, 400, 450, {width: 200})
-  doc.image(dataUriPaymentMethod, 400, 500, {width: 200})
-  doc.image(dataUriConfirmationNumber, 400, 550, {width: 200})
-
+  doc.image(dataUriName, 400, 200, { width: 200 });
+  doc.image(dataUriDate, 400, 250, { width: 200 });
+  doc.image(dataUriPhone, 300, 300, { width: 300 });
+  doc.image(dataUriRecipetNumber, 400, 350, { width: 200 });
+  doc.image(dataUriCompanyId, 300, 400, { width: 300 });
+  doc.image(dataUriPrice, 400, 450, { width: 200 });
+  doc.image(dataUriPaymentMethod, 400, 500, { width: 200 });
+  doc.image(dataUriConfirmationNumber, 400, 550, { width: 200 });
 
   doc.end();
 });
@@ -437,83 +459,86 @@ router.post("/api/admin/students/paymentByMonth", async (req, res, next) => {
   let paymentList = [];
   let studentsList = [];
   studentsList = await db.students.find().toArray();
-  studentsList.forEach((student)=>{
-    student.packagesList?.forEach((packageItem)=>{
-      packageItem.paymentsList?.forEach((payment)=>{
+  studentsList.forEach((student) => {
+    student.packagesList?.forEach((packageItem) => {
+      packageItem.paymentsList?.forEach((payment) => {
         const paymentMonth = new Date(payment.createdDate).getMonth();
         const paymentYear = new Date(payment.createdDate).getFullYear();
-        if(paymentMonth + 1 == req.body.month && paymentYear == req.body.year){
-          paymentList.push({studentName: student.name, ...payment});
+        if (
+          paymentMonth + 1 == req.body.month &&
+          paymentYear == req.body.year
+        ) {
+          paymentList.push({ studentName: student.name, ...payment });
         }
-      })
-    })
-  })
+      });
+    });
+  });
   sendPaymentsAsExcel(paymentList);
   res.status(200).json(paymentList);
 });
 
-const sendPaymentsAsExcel = (paymentList)=>{
-// Calculate the sum of the "amount" column
-const amountSum = paymentList.reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+const sendPaymentsAsExcel = (paymentList) => {
+  // Calculate the sum of the "amount" column
+  const amountSum = paymentList.reduce(
+    (sum, entry) => sum + parseFloat(entry.amount),
+    0
+  );
 
-  paymentList = paymentList.map((payment)=>{
-    return{
+  paymentList = paymentList.map((payment) => {
+    return {
       "תאריך תשלום": moment(payment.createdDate).format("DD/MM/YYYY"),
-      "שם": payment.studentName,
+      שם: payment.studentName,
       "אמצעי תשלום": PaymentMethods[payment.paymentMethod],
       "מספר אישור": payment.confirmationNumber,
       "סה״כ": payment.amount,
+    };
+  });
+
+  // Add a sum row to the data array
+  const sumRow = {
+    "סה״כ": amountSum.toString(),
+  };
+  paymentList.push(sumRow);
+
+  // Convert data to worksheet
+  const worksheet = XLSX.utils.json_to_sheet(paymentList);
+
+  // Create workbook and add the worksheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+  // Generate buffer
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+  // Save the buffer to a file
+  const filePath = "output.xlsx";
+  fs.writeFileSync(filePath, buffer);
+
+  // Define the email options
+  const mailOptions = {
+    from: "germathics.dev@gmail.com",
+    to: "sari.qashuw@gmail.com, gires419@gmail.com",
+    subject: "Excel File",
+    text: "Please find the attached Excel file",
+    attachments: [
+      {
+        filename: "output.xlsx",
+        path: filePath,
+      },
+    ],
+  };
+
+  // Send the email
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log("Error:", error);
+    } else {
+      console.log("Email sent:", info.response);
     }
-  })
 
-
-// Add a sum row to the data array
-const sumRow = {
-  "סה״כ": amountSum.toString()
+    // Delete the file after sending the email
+    fs.unlinkSync(filePath);
+  });
 };
-paymentList.push(sumRow);
-
-// Convert data to worksheet
-const worksheet = XLSX.utils.json_to_sheet(paymentList);
-
-// Create workbook and add the worksheet
-const workbook = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-
-// Generate buffer
-const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-// Save the buffer to a file
-const filePath = 'output.xlsx';
-fs.writeFileSync(filePath, buffer);
-
-
-// Define the email options
-const mailOptions = {
-  from: 'germathics.dev@gmail.com',
-  to: 'sari.qashuw@gmail.com',
-  subject: 'Excel File',
-  text: 'Please find the attached Excel file',
-  attachments: [
-    {
-      filename: 'output.xlsx',
-      path: filePath
-    }
-  ]
-};
-
-// Send the email
-transporter.sendMail(mailOptions, function(error, info) {
-  if (error) {
-    console.log('Error:', error);
-  } else {
-    console.log('Email sent:', info.response);
-  }
-
-  // Delete the file after sending the email
-  fs.unlinkSync(filePath);
-});
-}
-
 
 module.exports = router;
