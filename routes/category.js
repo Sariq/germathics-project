@@ -57,6 +57,7 @@ router.post("/api/admin/categories/add", async (req, res, next) => {
   const doc = {
     name: req.body.name,
     studentsList: [],
+    createdDate: new Date()
   };
 
   let lectures = [];
@@ -74,6 +75,7 @@ router.post("/api/admin/categories/update", async (req, res, next) => {
   delete req.body._id;;
   const doc = {
     ...req.body,
+    updatedDate: new Date()
   };
 
   await db.categories.updateOne(

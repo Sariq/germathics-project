@@ -102,6 +102,7 @@ router.post("/api/admin/students/add", async (req, res, next) => {
     totalPaidPrice: req.body.totalPaidPrice,
     categoryIdList: [req.body.categoryId],
     packagesList: req.body.packagesList,
+    createdDate: new Date()
   };
 
   const createdStudent = await db.students.insertOne(doc);
@@ -116,6 +117,8 @@ router.post("/api/admin/students/update", async (req, res, next) => {
   delete req.body._id;
   const student = {
     ...req.body,
+    updatedDate: new Date()
+
   };
 
   let oldStudent = await db.students.findOne({
@@ -209,6 +212,21 @@ router.post("/api/admin/students", async (req, res, next) => {
   } else {
     if (req.body.ids == undefined) {
       studentsList = await db.students.find().toArray();
+    }
+  }
+
+  res.status(200).json(studentsList);
+});
+
+router.post("/api/admin/students/payDelay", async (req, res, next) => {
+  const db = req.app.db;
+  let studentsList = [];
+  if (req.body.ids && req.body.ids.length > 0) {
+    const ids = req.body.ids.map((id) => getId(id));
+    studentsList = await db.students.find({ _id: { $in: ids,isPayDelay:true } }).toArray();
+  } else {
+    if (req.body.ids == undefined) {
+      studentsList = await db.students.find({isPayDelay:true}).toArray();
     }
   }
 

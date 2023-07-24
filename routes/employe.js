@@ -25,6 +25,7 @@ router.post("/api/admin/employe/add", async (req, res, next) => {
 
   const doc = {
     ...req.body,
+    createdDate: new Date()
   };
 
   const createdEmploye = await db.employes.insertOne(doc);
@@ -37,6 +38,7 @@ router.post("/api/admin/employes/update", async (req, res, next) => {
   delete req.body._id;
   const student = {
     ...req.body,
+    updatedDate: new Date()
   };
 
   let oldStudent = await db.employes.findOne({
