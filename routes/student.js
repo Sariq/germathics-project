@@ -71,7 +71,7 @@ removeStudentFromCategory = async function (
   });
 
   category.studentsList = category.studentsList.filter((id) => {
-    return id === studentId;
+    return !id.equals(studentId);
   });
 
   // category.lectures.forEach((lecture, index) => {
@@ -112,6 +112,7 @@ router.post("/api/admin/students/add", async (req, res, next) => {
 
   res.status(200).json({});
 });
+
 router.post("/api/admin/students/update", async (req, res, next) => {
   const db = req.app.db;
   delete req.body._id;
@@ -132,12 +133,15 @@ router.post("/api/admin/students/update", async (req, res, next) => {
   );
 
   if (oldStudent.categoryId != student.categoryId) {
-    removeStudentFromCategory(
-      req,
-      oldStudent.categoryId,
-      student.id,
-      student.apperanceCount
-    );
+    if( oldStudent.categoryId){
+      removeStudentFromCategory(
+        req,
+        oldStudent.categoryId,
+        student.id,
+        student.apperanceCount
+      );
+    }
+ 
     addStudentToCategory(
       req,
       student.categoryId,
@@ -148,6 +152,44 @@ router.post("/api/admin/students/update", async (req, res, next) => {
 
   const studentsList = await db.students.find().toArray();
   res.status(200).json(studentsList);
+});
+
+router.post("/api/admin/students/updateCategory/byIds", async (req, res, next) => {
+  const db = req.app.db;
+  const ids = req.body.ids;
+  const newCategoryId = req.body.newCategoryId;
+
+  console.log(ids)
+  for (const id of ids) {
+    let oldStudent = await db.students.findOne({
+      _id: getId(id),
+    });
+
+    await removeStudentFromCategory(
+      req,
+      oldStudent.categoryId,
+      id,
+      0
+    );
+    await  addStudentToCategory(
+      req,
+      newCategoryId,
+      id,
+      0
+    );
+
+    oldStudent.categoryId = newCategoryId;
+    oldStudent.updatedDate = new Date();
+    await db.students.updateOne(
+      { _id: getId(oldStudent._id) },
+      { $set: oldStudent },
+      { multi: false }
+    );
+
+  }
+
+  // const studentsList = await db.students.find().toArray();
+  res.status(200).json({});
 });
 
 router.post("/api/admin/students/add/package", async (req, res, next) => {
