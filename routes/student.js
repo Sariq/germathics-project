@@ -71,7 +71,8 @@ removeStudentFromCategory = async function (
   });
 
   category.studentsList = category.studentsList.filter((id) => {
-    return !id.equals(studentId);
+    return id !== (studentId);
+    //return !id.equals(studentId);
   });
 
   // category.lectures.forEach((lecture, index) => {
@@ -102,7 +103,7 @@ router.post("/api/admin/students/add", async (req, res, next) => {
     totalPaidPrice: req.body.totalPaidPrice,
     categoryIdList: [req.body.categoryId],
     packagesList: req.body.packagesList,
-    createdDate: new Date()
+    createdDate: new Date(),
   };
 
   const createdStudent = await db.students.insertOne(doc);
@@ -115,37 +116,38 @@ router.post("/api/admin/students/add", async (req, res, next) => {
 
 router.post("/api/admin/students/update", async (req, res, next) => {
   const db = req.app.db;
+  const studentId = req.body._id;
   delete req.body._id;
+  
   const student = {
     ...req.body,
-    updatedDate: new Date()
-
+    updatedDate: new Date(),
   };
 
   let oldStudent = await db.students.findOne({
-    _id: getId(student.id),
+    _id: getId(studentId),
   });
 
   await db.students.updateOne(
-    { _id: getId(student.id) },
+    { _id: getId(studentId) },
     { $set: student },
     { multi: false }
   );
 
   if (oldStudent.categoryId != student.categoryId) {
-    if( oldStudent.categoryId){
+    if (oldStudent.categoryId) {
       removeStudentFromCategory(
         req,
         oldStudent.categoryId,
-        student.id,
+        studentId,
         student.apperanceCount
       );
     }
- 
+
     addStudentToCategory(
       req,
       student.categoryId,
-      student.id,
+      studentId,
       student.apperanceCount
     );
   }
@@ -154,43 +156,35 @@ router.post("/api/admin/students/update", async (req, res, next) => {
   res.status(200).json(studentsList);
 });
 
-router.post("/api/admin/students/updateCategory/byIds", async (req, res, next) => {
-  const db = req.app.db;
-  const ids = req.body.ids;
-  const newCategoryId = req.body.newCategoryId;
+router.post(
+  "/api/admin/students/updateCategory/byIds",
+  async (req, res, next) => {
+    const db = req.app.db;
+    const ids = req.body.ids;
+    const newCategoryId = req.body.newCategoryId;
 
-  console.log(ids)
-  for (const id of ids) {
-    let oldStudent = await db.students.findOne({
-      _id: getId(id),
-    });
+    console.log(ids);
+    for (const id of ids) {
+      let oldStudent = await db.students.findOne({
+        _id: getId(id),
+      });
 
-    await removeStudentFromCategory(
-      req,
-      oldStudent.categoryId,
-      id,
-      0
-    );
-    await  addStudentToCategory(
-      req,
-      newCategoryId,
-      id,
-      0
-    );
+      await removeStudentFromCategory(req, oldStudent.categoryId, id, 0);
+      await addStudentToCategory(req, newCategoryId, id, 0);
 
-    oldStudent.categoryId = newCategoryId;
-    oldStudent.updatedDate = new Date();
-    await db.students.updateOne(
-      { _id: getId(oldStudent._id) },
-      { $set: oldStudent },
-      { multi: false }
-    );
+      oldStudent.categoryId = newCategoryId;
+      oldStudent.updatedDate = new Date();
+      await db.students.updateOne(
+        { _id: getId(oldStudent._id) },
+        { $set: oldStudent },
+        { multi: false }
+      );
+    }
 
+    // const studentsList = await db.students.find().toArray();
+    res.status(200).json({});
   }
-
-  // const studentsList = await db.students.find().toArray();
-  res.status(200).json({});
-});
+);
 
 router.post("/api/admin/students/add/package", async (req, res, next) => {
   const db = req.app.db;
@@ -265,15 +259,39 @@ router.post("/api/admin/students/payDelay", async (req, res, next) => {
   let studentsList = [];
   if (req.body.ids && req.body.ids.length > 0) {
     const ids = req.body.ids.map((id) => getId(id));
-    studentsList = await db.students.find({ _id: { $in: ids,isPayDelay:true } }).toArray();
+    studentsList = await db.students
+      .find({ _id: { $in: ids, isPayDelay: true } })
+      .toArray();
   } else {
     if (req.body.ids == undefined) {
-      studentsList = await db.students.find({isPayDelay:true}).toArray();
+      studentsList = await db.students.find({ isPayDelay: true }).toArray();
     }
   }
 
   res.status(200).json(studentsList);
 });
+
+addStudentToLecture = async function (req, categoryId, studentId, lectureId) {
+  const db = req.app.db;
+
+  let category = await db.categories.findOne({
+    _id: getId(categoryId),
+  });
+
+  category.lectures.forEach((lecture, index) => {
+    if (lecture.id == lectureId) {
+      lecture.studentsList = lecture.studentsList || [];
+      if (!lecture.studentsList.includes(studentId)) {
+        lecture.studentsList.push(studentId);
+      }
+    }
+  });
+  await db.categories.updateOne(
+    { _id: getId(categoryId) },
+    { $set: category },
+    { multi: false }
+  );
+};
 
 const getPackageStatus = (packageData) => {
   const emptySeats = packageData.seats.filter((seat) => seat.status === 0);
@@ -305,7 +323,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
     lectureDate: req.body.lectureDate,
     studentId: req.body.studentId,
     seatStatus: req.body.seatStatus,
-    categoryId: req.body.categoryId
+    categoryId: req.body.categoryId,
   };
 
   let studentDoc = await db.students.findOne({
@@ -313,6 +331,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
   });
 
   let appearanceValue = 0;
+  let isAddNewSeat = false;
 
   switch (params.seatStatus) {
     case 1:
@@ -321,6 +340,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
       break;
     case 3:
       appearanceValue = 0;
+      isAddNewSeat = true;
       break;
   }
 
@@ -358,12 +378,21 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
             status: params.seatStatus,
             lectureDate: params.lectureDate,
             lectureId: params.lectureId,
-            categoryId: params.categoryId
+            categoryId: params.categoryId,
           };
         } else {
           return seat;
         }
       });
+
+      if (isAddNewSeat) {
+        currentPackage.seats.push({
+          status: 0,
+          lectureDate: null,
+          id: uuid.v4(),
+        });
+        currentPackage.lecturesCount = currentPackage.seats.length;
+      }
       const packageStatus = getPackageStatus(currentPackage);
       currentPackage.status = packageStatus;
       78;
@@ -382,6 +411,7 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
       createdDate: new Date(),
       status: 0,
       lecturesCount: 5,
+      originalLecturesCount: 5,
       price: 0,
       paymentsList: [],
       seats: [],
@@ -402,6 +432,13 @@ router.post("/api/admin/students/apperance", async (req, res, next) => {
     { _id: getId(id) },
     { $set: studentDoc },
     { multi: false }
+  );
+
+  await addStudentToLecture(
+    req,
+    params.categoryId,
+    params.studentId,
+    params.lectureId
   );
 
   const studentsList = await db.students.find().toArray();

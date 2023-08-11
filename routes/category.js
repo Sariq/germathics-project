@@ -6,6 +6,7 @@ const {
 const {
   getId,
 } = require("../lib/common");
+const ObjectId = require('mongodb').ObjectID;
 
 updateStudentAppearnceCount = async function (req,studentsList, currentStudentsList) {
   const db = req.app.db;
@@ -68,13 +69,44 @@ router.post("/api/admin/categories/add", async (req, res, next) => {
   res.status(200).json(categoriesRes);
 });
 
+updateStudentsPackages = async function (req, lecture) {
+  const db = req.app.db;
+  
+    if(lecture.studentsList && lecture.studentsList.length > 0){
+     lecture.studentsList = lecture.studentsList.map((studentId)=> ObjectId(studentId));
+      let resStudentsList = await db.students.find( { _id : { $in : lecture.studentsList} } ).toArray();
+      console.log(resStudentsList)
+
+      for (const student of resStudentsList) {
+        student.packagesList = student.packagesList?.map((packageObj)=>{
+          packageObj.seats = packageObj?.seats?.map((seat)=>{
+            if(seat.lectureId == lecture.id){
+              seat.lectureDate = lecture.createdDate;
+              return seat;
+            }else{
+              return seat;
+            }
+          });
+          return packageObj;
+        });
+        await db.students.updateOne(
+          { _id: getId(student._id) },
+          { $set: student },
+          { multi: false }
+        );
+      };
+
+    }
+  
+}
+
 router.post("/api/admin/categories/update", async (req, res, next) => {
 
   const db = req.app.db;
-  const id = req.body._id;
-  delete req.body._id;;
+  const id = req.body.course._id;
+  delete req.body.course._id;;
   const doc = {
-    ...req.body,
+    ...req.body.course,
     updatedDate: new Date()
   };
 
@@ -83,6 +115,8 @@ router.post("/api/admin/categories/update", async (req, res, next) => {
     { $set: doc },
     { multi: false }
   );  
+
+  await updateStudentsPackages(req, req.body.lecture);
 
   const categoriesRes =   await db.categories.find().toArray();
   res.status(200).json(categoriesRes);
